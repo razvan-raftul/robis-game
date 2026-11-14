@@ -1,7 +1,10 @@
 """Fereastra principală și ecranele accesibile (liste native, citite de NVDA)."""
+import re
+
 import wx
 
 import sounds
+import speech
 
 
 class MainFrame(wx.Frame):
@@ -37,6 +40,7 @@ class MainFrame(wx.Frame):
             self.sizer.Detach(old)
             old.Destroy()
         self.panel, self.list, self.items, self.on_escape = p, lb, items, on_escape
+        self.repeat = str(items[0][0]) if items else title
         self.SetTitle(f"{title} - {self.base_title}")
         self.Layout()
         wx.CallAfter(self._focus)
@@ -61,6 +65,9 @@ class MainFrame(wx.Frame):
     def _on_key(self, e):
         k = e.GetKeyCode()
         focus = wx.Window.FindFocus()
+        if k == wx.WXK_F1 and self.list:
+            self.repeat_message()
+            return
         if k in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and focus is self.list and self.list:
             self._activate()
             return
@@ -74,9 +81,32 @@ class MainFrame(wx.Frame):
                 sounds.play("edge")
         e.Skip()
 
+    def repeat_message(self):
+        """F1: citește din nou mesajul sau întrebarea de pe ecran."""
+        if not speech.speak(self.repeat):
+            try:
+                self.list.SetSelection(0)
+                self.list.SetFocus()
+            except RuntimeError:
+                pass
+
+    def show_lines(self, title, text, on_escape):
+        """Text lung afișat ca listă, câte o propoziție pe rând. Escape te întoarce."""
+        parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
+        items = [(f"{title}. Mergi cu săgeata jos, câte o propoziție. Escape te întoarce.", None)]
+        items += [(p, None) for p in parts]
+        self.show_menu(title, items, on_escape=on_escape)
+
     # ---- dialoguri (NVDA citește automat textul dialogului) ----
     def ask_text(self, message, caption="Răspuns"):
         dlg = wx.TextEntryDialog(self, message, caption)
+
+        def on_key(e):
+            if e.GetKeyCode() == wx.WXK_F1:
+                speech.speak(message)
+            else:
+                e.Skip()
+        dlg.Bind(wx.EVT_CHAR_HOOK, on_key)
         try:
             if dlg.ShowModal() == wx.ID_OK:
                 return dlg.GetValue()
