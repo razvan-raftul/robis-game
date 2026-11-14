@@ -1,4 +1,4 @@
-"""Jocuri Accesibile - meniul principal."""
+"""Robi's game - meniul principal."""
 import sys
 import threading
 
@@ -9,12 +9,12 @@ import updater
 from remi_ui import RemiUI
 from triviador import TriviadorUI
 from ui import MainFrame
-from version import VERSION
+from version import APP_NAME, VERSION
 
 
 class App:
     def __init__(self):
-        self.f = MainFrame(f"Jocuri Accesibile {VERSION}")
+        self.f = MainFrame(f"{APP_NAME} {VERSION}")
         self.f.Show()
         self.f.Raise()
         updater.cleanup_old()
@@ -40,7 +40,7 @@ class App:
         ], on_escape=self.main_menu)
 
     def about(self):
-        self.f.message(f"Jocuri Accesibile, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
+        self.f.message(f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
                        "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi.", "Despre")
 
     # ----- actualizare -----
