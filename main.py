@@ -99,8 +99,7 @@ class App:
 
     def start_update(self, info):
         tag, url, size = info
-        self.f.show_menu("Actualizare", [("Se actualizează", None)])
-        speech.speak("Se actualizează")
+        self.f.show_progress("Se actualizează")
         self.last_spoken = 0
 
         def progress(pct):
@@ -115,14 +114,10 @@ class App:
         threading.Thread(target=work, daemon=True).start()
 
     def on_progress(self, pct):
-        if self.f.list:
-            try:
-                self.f.list.SetString(0, f"Se actualizează {pct}%")
-            except RuntimeError:
-                pass
-        if pct >= self.last_spoken + 10 or pct == 100:
+        self.f.set_progress(pct)
+        if pct >= self.last_spoken + 10:
             self.last_spoken = pct - pct % 10
-            speech.speak(f"{pct}%")
+            speech.speak(f"{self.last_spoken}%", interrupt=False)
 
     def update_failed(self):
         self.f.message("Actualizarea nu a reușit. Joci mai departe pe versiunea actuală.")
