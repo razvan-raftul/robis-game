@@ -1,10 +1,11 @@
 """Sunete scurte pentru meniuri, generate la pornire (nu au nevoie de fișiere separate)."""
-import json
 import math
 import os
 import struct
 import tempfile
 import wave
+
+import settings
 
 try:
     import winsound
@@ -21,7 +22,6 @@ SOUNDS = {
     "wrong": ([(311, 140), (233, 260)], 0.35),
 }
 _dir = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v2")
-_cfg = os.path.join(os.environ.get("APPDATA", tempfile.gettempdir()), "RobisGame", "setari.json")
 enabled = True
 
 
@@ -41,11 +41,7 @@ def _write(path, segments, vol):
 
 def init():
     global enabled
-    try:
-        with open(_cfg, encoding="utf-8") as f:
-            enabled = bool(json.load(f).get("sunete", True))
-    except Exception:
-        enabled = True
+    enabled = bool(settings.get("sunete", True))
     try:
         os.makedirs(_dir, exist_ok=True)
         for name, (seg, vol) in SOUNDS.items():
@@ -59,12 +55,7 @@ def init():
 def set_enabled(value):
     global enabled
     enabled = value
-    try:
-        os.makedirs(os.path.dirname(_cfg), exist_ok=True)
-        with open(_cfg, "w", encoding="utf-8") as f:
-            json.dump({"sunete": value}, f)
-    except Exception:
-        pass
+    settings.put("sunete", value)
 
 
 def play(name):
