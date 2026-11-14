@@ -2,9 +2,9 @@
 Format numeric: (categorie, întrebare, răspuns)."""
 
 CATEGORII = ["Geografie", "Istorie", "Știință și natură", "Sport", "Artă și literatură",
-             "Muzică", "Film și televiziune", "Cultură generală"]
+             "Muzică", "Film și televiziune", "Cultură generală", "Biblie"]
 
-G, I, S, SP, A, M, F, C = CATEGORII
+G, I, S, SP, A, M, F, C, B = CATEGORII
 
 GRILA = [
     # Geografie
@@ -175,6 +175,27 @@ GRILA = [
     (C, "Ce animal este simbolul păcii?", "Porumbelul", ["Vulturul", "Leul", "Bufnița"]),
     (C, "Câte continente sunt în modelul cel mai folosit la școală?", "7", ["5", "6", "8"]),
     (C, "Câți ani are un mileniu?", "1000", ["100", "10.000", "500"]),
+    # Biblie
+    (B, "Cine a construit arca înainte de potop?", "Noe", ["Moise", "Avraam", "Iacob"]),
+    (B, "Câte porunci a primit Moise pe Muntele Sinai?", "10", ["7", "12", "5"]),
+    (B, "Cine a fost primul om creat, după Cartea Facerii?", "Adam", ["Abel", "Noe", "Set"]),
+    (B, "Cine l-a învins pe uriașul Goliat?", "David", ["Saul", "Samson", "Solomon"]),
+    (B, "În ce oraș s-a născut Iisus?", "Betleem", ["Nazaret", "Ierusalim", "Capernaum"]),
+    (B, "Câți apostoli și-a ales Iisus?", "12", ["10", "7", "70"]),
+    (B, "Care apostol l-a trădat pe Iisus?", "Iuda Iscarioteanul", ["Petru", "Toma", "Ioan"]),
+    (B, "Care este prima carte a Bibliei?", "Facerea", ["Ieșirea", "Psalmii", "Evanghelia după Matei"]),
+    (B, "Cine a stat în pântecele unui pește mare?", "Iona", ["Iov", "Ilie", "Daniel"]),
+    (B, "Ce rege era vestit pentru înțelepciunea lui?", "Solomon", ["David", "Saul", "Irod"]),
+    (B, "Cine a fost aruncat în groapa cu lei?", "Daniel", ["Iosif", "Ieremia", "Samson"]),
+    (B, "Care apostol s-a lepădat de Iisus de trei ori?", "Petru", ["Iuda", "Toma", "Andrei"]),
+    (B, "În ce stătea puterea lui Samson?", "În părul lui", ["În brațe", "În sabie", "În centură"]),
+    (B, "Cine a scos poporul evreu din Egipt?", "Moise", ["Aaron", "Iosua", "Avraam"]),
+    (B, "În ce râu a fost botezat Iisus?", "Iordan", ["Nil", "Eufrat", "Tigru"]),
+    (B, "Care este ultima carte a Bibliei?", "Apocalipsa", ["Faptele Apostolilor", "Epistola lui Iuda", "Maleahi"]),
+    (B, "Câte cărți are Noul Testament?", "27", ["39", "66", "21"]),
+    (B, "Care a fost prima minune a lui Iisus, după Evanghelia lui Ioan?", "Prefacerea apei în vin la Cana", ["Umblarea pe apă", "Învierea lui Lazăr", "Înmulțirea pâinilor"]),
+    (B, "Cine l-a ucis pe Abel?", "Cain", ["Set", "Esau", "Iacob"]),
+    (B, "Pe cine l-au vândut frații săi în Egipt?", "Iosif", ["Beniamin", "Iuda", "Ruben"]),
 ]
 
 NUMERICE = [
@@ -215,4 +236,10 @@ NUMERICE = [
     (C, "În ce an a fost lansat primul iPhone?", 2007),
     (C, "Câte limbi oficiale are ONU?", 6),
     (C, "Câte litere are alfabetul englez?", 26),
+    (B, "Câți ani a trăit Matusalem, după Biblie?", 969),
+    (B, "Câte zile și câte nopți a plouat la potop?", 40),
+    (B, "Câți ani a umblat poporul evreu prin pustie?", 40),
+    (B, "Câte pâini a înmulțit Iisus ca să sature cinci mii de oameni?", 5),
+    (B, "Câți fii a avut Iacob?", 12),
+    (B, "Câte zile a stat Iona în pântecele peștelui?", 3),
 ]
