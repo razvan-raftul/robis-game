@@ -1,6 +1,8 @@
 """Triviador: cucerește teritorii răspunzând la întrebări."""
 import random
 
+import sounds
+
 from trivia_data import CATEGORII, GRILA, NUMERICE
 
 TERITORII = ["Alaska", "Canada", "Groenlanda", "Mexic", "Brazilia", "Argentina", "Islanda",
@@ -176,7 +178,6 @@ class TriviadorUI:
             ("Alege categoriile de întrebări", self.pick_cats),
             ("Alege dificultatea adversarilor", self.pick_diff),
             ("Cum se joacă", self.help),
-            ("Înapoi la jocuri", self.back),
         ], on_escape=self.back, selected=1)
 
     def pick_cats(self):
@@ -210,7 +211,7 @@ class TriviadorUI:
             "care urcă la 400 de puncte. Dacă doar apărătorul răspunde bine, primește 100 de puncte. "
             "Dacă amândoi răspund bine, decide o întrebare numerică. O bază cade după 3 atacuri câștigate, "
             "iar cel care o cucerește ia toate teritoriile proprietarului. Câștigă cine are cele mai multe puncte la final. "
-            "În liste te miști cu săgețile, alegi cu Enter, iar Escape te duce înapoi.", "Cum se joacă Triviador")
+            "În liste te miști cu săgețile, alegi cu Enter, iar Escape te duce înapoi sau te scoate din joc.", "Cum se joacă Triviador")
         self.setup()
 
     # ---------- joc ----------
@@ -227,7 +228,6 @@ class TriviadorUI:
             ("Continuă", cont),
             ("Harta", self.show_map),
             ("Scorul", lambda: self.status(self.g.scores_text(), cont)),
-            ("Ieși din joc", self.quit),
         ], on_escape=self.quit, selected=0)
 
     def show_map(self):
@@ -261,6 +261,7 @@ class TriviadorUI:
         for i in (1, 2):
             guesses[i] = g.ai_guess(q["ans"])
         order = g.rank(guesses, q["ans"])
+        sounds.play("correct" if order[0] == 0 else ("wrong" if order[-1] == 0 else "select"))
         txt = f"Răspunsul corect: {fmt_num(q['ans'])}. "
         txt += ", ".join(f"{g.players[i].name} {'fără răspuns' if guesses[i] is None else fmt_num(guesses[i])}"
                          for i in range(3)) + ". "
@@ -276,7 +277,7 @@ class TriviadorUI:
             if g.players[pi].human:
                 items = [(f"Alege un teritoriu liber. Mai ai {self.picks.count(0)} de ales.", None)]
                 items += [(g.terr[i].name, lambda i=i: self._human_pick(i)) for i in g.free()]
-                self.f.show_menu("Alege teritoriul", items, selected=1)
+                self.f.show_menu("Alege teritoriul", items, on_escape=self.quit, selected=1)
                 return
             ti = g.ai_pick_free()
             g.take(pi, ti)
@@ -317,7 +318,7 @@ class TriviadorUI:
             for i, t in enumerate(g.terr):
                 if t.owner not in (None, 0):
                     items.append((g.describe(i), lambda i=i: self.attack(0, i)))
-            self.f.show_menu("Atacul tău", items, selected=1)
+            self.f.show_menu("Atacul tău", items, on_escape=self.quit, selected=1)
         else:
             self.attack(att, g.ai_target(att))
 
@@ -339,12 +340,13 @@ class TriviadorUI:
         items = [(f"{intro} Categoria {q['cat']}. {q['q']}", None)]
         for k, o in enumerate(q["opts"]):
             items.append((f"{LITERE[k]}: {o}", lambda k=k: self._answer(k)))
-        self.f.show_menu("Întrebare", items, selected=0)
+        self.f.show_menu("Întrebare", items, on_escape=self.quit, selected=0)
 
     def _answer(self, k):
         g, q = self.g, self.cur_q
         att, ti, d = self.cur
         me_ok = k == q["ok"]
+        sounds.play("correct" if me_ok else "wrong")
         other_ok = g.ai_mc()
         a_ok, d_ok = (me_ok, other_ok) if att == 0 else (other_ok, me_ok)
         corect = q["opts"][q["ok"]]
@@ -385,6 +387,8 @@ class TriviadorUI:
         order = g.rank(guesses, q["ans"])
         dist = {pi: (float("inf") if guesses[pi] is None else abs(guesses[pi] - q["ans"])) for pi in guesses}
         att_wins = dist[att] < dist[d]
+        if 0 in (att, d):
+            sounds.play("correct" if (att_wins == (att == 0)) else "wrong")
         txt = (f"{head}Departajare: {q['q']} Răspunsul corect: {fmt_num(q['ans'])}. "
                + ", ".join(f"{g.players[pi].name} {'fără răspuns' if guesses[pi] is None else fmt_num(guesses[pi])}"
                            for pi in (att, d)) + ". ")
@@ -399,6 +403,4 @@ class TriviadorUI:
         self.f.show_menu("Final Triviador", [
             (f"Jocul s-a terminat. {head} {g.scores_text()}", None),
             ("Joc nou", self.start),
-            ("Înapoi la Triviador", self.setup),
-            ("Înapoi la jocuri", self.back),
         ], on_escape=self.setup, selected=0)
