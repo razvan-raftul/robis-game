@@ -68,7 +68,21 @@ class App:
             (f"Numele tău: {settings.player_name()}", self.change_name),
             (f"Sunete: {stare}", self.toggle_sounds),
             (f"Schema de sunete: {sounds.scheme}", self.scheme_menu),
+            (f"Sunet de deschidere și închidere: {sounds.intro}", self.intro_menu),
         ], on_escape=lambda: self.main_menu(selected=1), selected=selected)
+
+    def intro_menu(self):
+        names = list(sounds.INTROS)
+        self.f.show_menu("Sunet de deschidere și închidere", [(n, lambda n=n: self.set_intro(n)) for n in names],
+                         on_escape=lambda: self.settings_menu(selected=3),
+                         selected=names.index(sounds.intro) if sounds.intro in names else 0,
+                         repeat=f"Alege sunetul de deschidere și închidere. Acum este {sounds.intro}. "
+                                "Enter îl alege și îl ascultă.")
+
+    def set_intro(self, name):
+        sounds.set_intro(name)
+        sounds.play("start")
+        self.settings_menu(selected=3)
 
     def scheme_menu(self):
         names = list(sounds.SCHEMES)

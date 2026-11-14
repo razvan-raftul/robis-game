@@ -317,13 +317,13 @@ class TriviadorUI:
         self.f.show_lines(
             "Cum se joacă Triviador",
             "Joci cu Miruna și Sara. Fiecare are o bază cu 3 turnuri, care valorează 1000 de puncte. "
-            "Întâi urmează extinderea: la fiecare rundă primiți o întrebare cu răspuns numeric. "
-            "Cel mai apropiat alege 2 teritorii libere, al doilea alege unul. Un teritoriu luat așa valorează 200. "
-            "În meniul jocului poți alege modul de răspuns: grilă, cu variante, sau scris, când scrii tu fiecare răspuns. "
+            "Întâi urmează extinderea: la fiecare rundă primiți toți aceeași întrebare. "
+            "Cine răspunde corect sau cel mai aproape de răspuns alege 2 teritorii libere, al doilea alege unul. Un teritoriu luat așa valorează 200. "
+            "Din Alege modalitatea jocului alegi Grilă, ca să alegi fiecare răspuns din variante, sau Scris, ca să scrii tu fiecare răspuns. "
             f"Apoi urmează {RUNDE_LUPTA} runde de luptă. Pe rând, fiecare atacă un teritoriu al altcuiva. "
             "Atacatorul și apărătorul răspund la aceeași întrebare. Dacă doar atacatorul răspunde bine, cucerește teritoriul, "
             "care urcă la 400 de puncte. Dacă doar apărătorul răspunde bine, primește 100 de puncte. "
-            "Dacă amândoi răspund bine, decide o întrebare cu răspuns numeric, cel mai apropiat câștigă. O bază cade după 3 atacuri câștigate, "
+            "Dacă amândoi răspund bine, mai urmează o întrebare de departajare. O bază cade după 3 atacuri câștigate, "
             "iar cel care o cucerește ia toate teritoriile proprietarului. Câștigă cine are cele mai multe puncte la final.",
             lambda: self.help_menu(0))
 

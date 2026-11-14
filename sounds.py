@@ -20,8 +20,6 @@ SOUNDS = {
     "edge": ([(200, 70)], 0.35),
     "correct": ([(523, 80), (659, 80), (784, 80), (1047, 160)], 0.32),
     "wrong": ([(311, 140), (233, 260)], 0.35),
-    "start": ([(392, 220), (494, 220), (587, 520)], 0.16, True),
-    "exit": ([(587, 220), (494, 220), (392, 560)], 0.16, True),
 }
 # nume: (formă de undă, înmulțitor de înălțime, volum, cât de repede se stinge)
 SCHEMES = {
@@ -31,9 +29,18 @@ SCHEMES = {
     "Clopoțel": ("bell", 1.5, 1.0, 6.0),
     "Lemn": ("bell", 0.6, 1.1, 18.0),
 }
-_base = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v5")
+# sunete de deschidere și închidere, alese separat: nume: (deschidere, închidere, formă, stingere)
+INTROS = {
+    "Liniștit": ([(392, 220), (494, 220), (587, 520)], [(587, 220), (494, 220), (392, 560)], "sine", 0.0),
+    "Harpă": ([(262, 160), (330, 160), (392, 160), (523, 600)], [(523, 160), (392, 160), (330, 160), (262, 650)], "bell", 3.0),
+    "Clopoței": ([(784, 260), (988, 700)], [(988, 260), (784, 750)], "bell", 4.0),
+    "Adânc": ([(196, 350), (294, 700)], [(294, 350), (196, 800)], "triangle", 0.0),
+    "Fără sunet": None,
+}
+_base = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v6")
 enabled = True
 scheme = "Clasic"
+intro = "Liniștit"
 
 
 def _wave(kind, phase):
@@ -72,6 +79,27 @@ def _dir():
     return os.path.join(_base, scheme)
 
 
+def _make_intro(name):
+    spec = INTROS.get(name)
+    if not spec:
+        return
+    start, end, kind, decay = spec
+    d = os.path.join(_base, "intro_" + name)
+    os.makedirs(d, exist_ok=True)
+    for snd, seg in (("start", start), ("exit", end)):
+        p = os.path.join(d, snd + ".wav")
+        if not os.path.exists(p):
+            _write(p, seg, 0.16, kind, 1.0, 1.0, decay, True)
+
+
+def _path(name):
+    if name in ("start", "exit"):
+        if not INTROS.get(intro):
+            return None
+        return os.path.join(_base, "intro_" + intro, name + ".wav")
+    return os.path.join(_dir(), name + ".wav")
+
+
 def _make(name):
     kind, mult, gain, decay = SCHEMES[name]
     d = os.path.join(_base, name)
@@ -87,13 +115,29 @@ def _make(name):
 
 
 def init():
-    global enabled, scheme
+    global enabled, scheme, intro
     enabled = bool(settings.get("sunete", True))
+    intro = settings.get("sunet_intro", "Liniștit")
+    if intro not in INTROS:
+        intro = "Liniștit"
     scheme = settings.get("schema_sunete", "Clasic")
     if scheme not in SCHEMES:
         scheme = "Clasic"
     try:
         _make(scheme)
+        _make_intro(intro)
+    except Exception:
+        pass
+
+
+def set_intro(name):
+    global intro
+    if name not in INTROS:
+        return
+    intro = name
+    settings.put("sunet_intro", name)
+    try:
+        _make_intro(name)
     except Exception:
         pass
 
@@ -121,7 +165,9 @@ def play_sync(name):
     if not enabled or winsound is None:
         return
     try:
-        winsound.PlaySound(os.path.join(_dir(), name + ".wav"), winsound.SND_FILENAME | winsound.SND_NODEFAULT)
+        p = _path(name)
+        if p:
+            winsound.PlaySound(p, winsound.SND_FILENAME | winsound.SND_NODEFAULT)
     except Exception:
         pass
 
@@ -130,7 +176,8 @@ def play(name):
     if not enabled or winsound is None:
         return
     try:
-        winsound.PlaySound(os.path.join(_dir(), name + ".wav"),
-                           winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+        p = _path(name)
+        if p:
+            winsound.PlaySound(p, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
     except Exception:
         pass
