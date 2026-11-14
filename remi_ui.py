@@ -1,4 +1,5 @@
 """Ecranele accesibile pentru Remi pe tablă și Remi etalat."""
+import settings
 from remi import RemiGame
 from remi_core import best_partition, closing_plan, sort_tiles, used_ids
 
@@ -54,12 +55,11 @@ class RemiUI:
         self.setup()
 
     def rules(self):
-        self.f.message(REGULI[self.variant], "Reguli " + self.title)
-        self.setup()
+        self.f.show_lines("Reguli " + self.title, REGULI[self.variant], self.setup)
 
     # ---------- desfășurare ----------
     def start(self):
-        self.g = RemiGame(self.variant, self.n_ai)
+        self.g = RemiGame(self.variant, self.n_ai, name=settings.player_name())
         self.new_round()
 
     def new_round(self):
@@ -114,7 +114,7 @@ class RemiUI:
         r = self.g.take_discard(0)
         if r is None:
             return self.turn_menu("Nu poți lua piesa aruncată.")
-        self.action_menu("Tu " + r + ".")
+        self.action_menu("Ai " + r[2:] + ".")
 
     def action_menu(self, msg):
         g = self.g
@@ -172,7 +172,7 @@ class RemiUI:
         opts = g.attach_options(0)
         items = [("Alege ce piesă lipești și unde.", None)]
         for t, fm in opts:
-            owner = "ta" if fm.owner == 0 else f"lui {g.players[fm.owner].name}"
+            owner = "ta" if fm.owner == 0 else settings.gen(g.players[fm.owner].name)
             items.append((f"{t.name()} la {fm.name()}, formația {owner}", lambda t=t, fm=fm: self.do_attach(t, fm)))
         self.f.show_menu("Lipire", items, on_escape=lambda: self.action_menu("Nu ai lipit nimic."), selected=1)
 
@@ -203,7 +203,7 @@ class RemiUI:
         g = self.g
         items = [(f"Pe masă sunt {len(g.table)} formații. Escape pentru întoarcere.", None)]
         for fm in g.table:
-            owner = "a ta" if fm.owner == 0 else f"a lui {g.players[fm.owner].name}"
+            owner = "a ta" if fm.owner == 0 else "a " + settings.gen(g.players[fm.owner].name)
             items.append((f"{fm.name()}, {owner}", None))
         for p in g.players[1:]:
             items.append((f"{p.name} are {len(p.hand)} piese, {'etalat' if p.etalat else 'neetalat'}", None))
