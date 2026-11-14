@@ -97,6 +97,29 @@ class MainFrame(wx.Frame):
         items += [(p, None) for p in parts]
         self.show_menu(title, items, on_escape=on_escape)
 
+    def show_progress(self, title):
+        """Ecran de actualizare cu bară de progres (NVDA o anunță cu bipurile ei)."""
+        old = self.panel
+        p = wx.Panel(self)
+        s = wx.BoxSizer(wx.VERTICAL)
+        s.Add(wx.StaticText(p, label=title), 0, wx.ALL, 6)
+        self.gauge = wx.Gauge(p, range=100, style=wx.GA_HORIZONTAL)
+        s.Add(self.gauge, 0, wx.EXPAND | wx.ALL, 6)
+        p.SetSizer(s)
+        self.sizer.Add(p, 1, wx.EXPAND)
+        if old is not None:
+            self.sizer.Detach(old)
+            old.Destroy()
+        self.panel, self.list, self.items, self.on_escape = p, None, [], None
+        self.SetTitle(f"{title} - {self.base_title}")
+        self.Layout()
+
+    def set_progress(self, pct):
+        try:
+            self.gauge.SetValue(max(0, min(100, pct)))
+        except (RuntimeError, AttributeError):
+            pass
+
     # ---- dialoguri (NVDA citește automat textul dialogului) ----
     def ask_text(self, message, caption="Răspuns"):
         dlg = wx.TextEntryDialog(self, message, caption)
