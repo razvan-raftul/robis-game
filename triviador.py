@@ -76,6 +76,24 @@ class TriviadorGame:
         cat, q, ans = self.num_deck.pop()
         return {"cat": cat, "q": q, "ans": ans}
 
+    def num_options(self, ans):
+        """Patru variante pentru o întrebare cu număr, una fiind cea corectă."""
+        is_int = float(ans).is_integer()
+        is_year = is_int and 1000 <= ans <= 2100
+        opts, tries = {ans}, 0
+        while len(opts) < 4 and tries < 200:
+            tries += 1
+            if is_year:
+                v = ans + self.rng.choice([-1, 1]) * self.rng.randint(3, 60)
+            elif is_int and ans < 20:
+                v = ans + self.rng.choice([-4, -3, -2, -1, 1, 2, 3, 4, 5])
+            else:
+                v = ans * self.rng.choice([0.5, 0.6, 0.7, 0.8, 1.2, 1.3, 1.5, 1.75, 2])
+                v = round(v) if is_int else round(v, 2)
+            if v > 0 and v != ans:
+                opts.add(v)
+        return sorted(opts)
+
     def ai_mc(self):
         return self.rng.random() < self.p_ok
 
@@ -168,6 +186,7 @@ class TriviadorUI:
     def __init__(self, frame, back):
         self.f, self.back = frame, back
         self.cats, self.diff = [], "Mediu"
+        self.num_mode = settings.get("mod_numeric", "variante")
         self.setup()
 
     # ---------- pregătire ----------
@@ -185,6 +204,8 @@ class TriviadorUI:
             ("Începe jocul", self.start),
             ("Alege categoriile de întrebări", self.pick_cats),
             ("Alege dificultatea adversarilor", self.pick_diff),
+            (f"Întrebările cu număr: {'cu variante' if self.num_mode == 'variante' else 'scrii tu numărul'}",
+             self.toggle_num_mode),
             ("Cum se joacă", self.help),
         ], on_escape=self.back, selected=1)
 
@@ -199,6 +220,31 @@ class TriviadorUI:
             else:
                 self.cats = [CATEGORII[i - 1] for i in r]
         self.setup()
+
+    def toggle_num_mode(self):
+        self.num_mode = "scriu" if self.num_mode == "variante" else "variante"
+        settings.put("mod_numeric", self.num_mode)
+        self.setup()
+
+    def ask_number(self, msg, q, on_value):
+        """Cere răspunsul la o întrebare cu număr, cu variante sau scris, după setare."""
+        if self.num_mode == "variante":
+            items = [(msg + " Alege varianta cea mai apropiată.", None)]
+            for k, v in enumerate(self.g.num_options(q["ans"])):
+                items.append((f"{LITERE[k]}: {fmt_num(v)}", lambda v=v: on_value(v)))
+            self.f.show_menu("Întrebare cu număr", items, on_escape=self.quit, selected=0)
+            return
+        text_msg = msg + " Scrie un număr."
+        val = None
+        while True:
+            text = self.f.ask_text(text_msg, "Întrebare cu număr")
+            if text is None:
+                break
+            val = parse_num(text)
+            if val is not None:
+                break
+            text_msg = "Nu am înțeles numărul. " + q["q"]
+        on_value(val)
 
     def pick_diff(self):
         items = [("Alege cât de buni sunt adversarii.", None)]
@@ -260,16 +306,11 @@ class TriviadorUI:
             self.battle_start()
             return
         q = g.next_num()
-        msg = f"Extindere, {len(g.free())} teritorii libere. Categoria {q['cat']}. {q['q']} Scrie un număr."
-        val = None
-        while True:
-            text = self.f.ask_text(msg, "Întrebare numerică")
-            if text is None:
-                break
-            val = parse_num(text)
-            if val is not None:
-                break
-            msg = "Nu am înțeles numărul. " + q["q"]
+        msg = f"Extindere, {len(g.free())} teritorii libere. Categoria {q['cat']}. {q['q']}"
+        self.ask_number(msg, q, lambda val: self.expansion_result(q, val))
+
+    def expansion_result(self, q, val):
+        g = self.g
         guesses = {0: val}
         for i in (1, 2):
             guesses[i] = g.ai_guess(q["ans"])
@@ -380,20 +421,15 @@ class TriviadorUI:
         g = self.g
         att, ti, d = self.cur
         q = g.next_num()
-        guesses = {}
         if 0 in (att, d):
-            msg = f"{head}Amândoi ați răspuns corect. Departajare, categoria {q['cat']}. {q['q']} Scrie un număr."
-            val = None
-            while True:
-                text = self.f.ask_text(msg, "Departajare")
-                if text is None:
-                    break
-                val = parse_num(text)
-                if val is not None:
-                    break
-                msg = "Nu am înțeles numărul. " + q["q"]
-            guesses[0] = val
-            head = ""
+            msg = f"{head}Amândoi ați răspuns corect. Departajare, categoria {q['cat']}. {q['q']}"
+            self.ask_number(msg, q, lambda val: self.tiebreak_result(q, {0: val}, ""))
+        else:
+            self.tiebreak_result(q, {}, head)
+
+    def tiebreak_result(self, q, guesses, head):
+        g = self.g
+        att, ti, d = self.cur
         for pi in (att, d):
             if pi != 0:
                 guesses[pi] = g.ai_guess(q["ans"])
