@@ -4,6 +4,7 @@ import threading
 
 import wx
 
+import settings
 import sounds
 import speech
 import updater
@@ -21,22 +22,52 @@ class App:
         updater.cleanup_old()
         sounds.init()
         self.main_menu()
+        if not settings.get("nume"):
+            wx.CallAfter(self.first_name)
         if updater.is_frozen():
             threading.Thread(target=self.check_update, args=(False,), daemon=True).start()
 
     def main_menu(self, selected=0):
-        stare = "pornite" if sounds.enabled else "oprite"
         self.f.show_menu("Meniu principal", [
             ("Jocuri", self.games_menu),
-            (f"Sunete în meniu: {stare}", self.toggle_sounds),
+            ("Setări", self.settings_menu),
             ("Verifică actualizările", lambda: threading.Thread(
                 target=self.check_update, args=(True,), daemon=True).start()),
             ("Despre", self.about),
         ], on_escape=self.f.Close, selected=selected)
 
+    # ----- setări -----
+    def first_name(self):
+        for _ in range(3):
+            name = self.ask_name("Bine ai venit în Robi's game! Scrie-ți numele, apoi apasă Enter. "
+                                 "Îl poți schimba oricând din Setări.")
+            if name:
+                break
+        if not name:
+            settings.put("nume", "Jucător")
+        self.main_menu()
+
+    def ask_name(self, msg):
+        text = self.f.ask_text(msg, "Numele tău")
+        name = (text or "").strip()[:30]
+        if name:
+            settings.put("nume", name)
+        return name
+
+    def settings_menu(self, selected=0):
+        stare = "pornite" if sounds.enabled else "oprite"
+        self.f.show_menu("Setări", [
+            (f"Numele tău: {settings.player_name()}", self.change_name),
+            (f"Sunete: {stare}", self.toggle_sounds),
+        ], on_escape=lambda: self.main_menu(selected=1), selected=selected)
+
+    def change_name(self):
+        self.ask_name(f"Numele tău acum este {settings.player_name()}. Scrie numele nou și apasă Enter.")
+        self.settings_menu(selected=0)
+
     def toggle_sounds(self):
         sounds.set_enabled(not sounds.enabled)
-        self.main_menu(selected=1)
+        self.settings_menu(selected=1)
 
     def games_menu(self):
         self.f.show_menu("Jocuri", [
@@ -46,8 +77,8 @@ class App:
         ], on_escape=self.main_menu)
 
     def about(self):
-        self.f.message(f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
-                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi. Din meniul principal ieși cu Escape sau Alt F4.", "Despre")
+        self.f.show_lines("Despre", f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
+                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi, iar F1 citește din nou mesajul sau întrebarea. Din meniul principal ieși cu Escape sau Alt F4.", lambda: self.main_menu(selected=3))
 
     # ----- actualizare -----
     def check_update(self, manual):
