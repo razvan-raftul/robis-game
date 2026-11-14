@@ -41,7 +41,6 @@ class RemiUI:
             ("Începe jocul", self.start),
             ("Alege numărul de adversari", self.pick_n),
             ("Reguli", self.rules),
-            ("Înapoi la jocuri", self.back),
         ], on_escape=self.back, selected=1)
 
     def pick_n(self):
@@ -89,8 +88,7 @@ class RemiUI:
                  ("Formații posibile", lambda: self.show_possible(back))]
         if self.g.etalat_mode:
             items.append(("Masa", lambda: self.show_table(back)))
-        items += [("Scorul", lambda: back(self.scores())),
-                  ("Ieși din joc", self.quit)]
+        items += [("Scorul", lambda: back(self.scores()))]
         return items
 
     def turn_menu(self, msg):
@@ -225,5 +223,4 @@ class RemiUI:
             (f"Runda s-a terminat. {msg} Pe primul loc: {best.name}.", None),
             ("Rundă nouă", self.new_round),
             ("Joc nou, scorul de la zero", self.start),
-            ("Înapoi la jocuri", self.back),
         ], on_escape=self.setup, selected=0)
