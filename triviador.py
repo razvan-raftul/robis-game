@@ -167,12 +167,18 @@ class TriviadorGame:
 class TriviadorUI:
     def __init__(self, frame, back):
         self.f, self.back = frame, back
-        self.cats, self.diff = list(CATEGORII), "Mediu"
+        self.cats, self.diff = [], "Mediu"
         self.setup()
 
     # ---------- pregătire ----------
     def setup(self):
-        txt = (f"Triviador. Categorii alese: {len(self.cats)} din {len(CATEGORII)}. "
+        if not self.cats:
+            alese = "niciuna, alege-le înainte să începi"
+        elif len(self.cats) == len(CATEGORII):
+            alese = "toate"
+        else:
+            alese = ", ".join(self.cats)
+        txt = (f"Triviador. Categorii alese: {alese}. "
                f"Dificultate adversari: {self.diff}.")
         self.f.show_menu("Triviador", [
             (txt, None),
@@ -183,14 +189,15 @@ class TriviadorUI:
         ], on_escape=self.back, selected=1)
 
     def pick_cats(self):
-        sel = [i for i, c in enumerate(CATEGORII) if c in self.cats]
-        r = self.f.ask_multi("Bifează cu spațiu categoriile dorite, apoi apasă Enter.",
-                             "Categorii", CATEGORII, sel)
+        choices = ["Toate"] + CATEGORII
+        sel = [i + 1 for i, c in enumerate(CATEGORII) if c in self.cats]
+        r = self.f.ask_multi("Bifează cu spațiu categoriile dorite, apoi apasă Enter. "
+                             "Prima opțiune, Toate, le alege pe toate.", "Categorii", choices, sel)
         if r is not None:
-            if not r:
-                self.f.message("Trebuie să alegi cel puțin o categorie. Le-am păstrat pe cele de dinainte.")
+            if 0 in r:
+                self.cats = list(CATEGORII)
             else:
-                self.cats = [CATEGORII[i] for i in r]
+                self.cats = [CATEGORII[i - 1] for i in r]
         self.setup()
 
     def pick_diff(self):
@@ -218,6 +225,10 @@ class TriviadorUI:
 
     # ---------- joc ----------
     def start(self):
+        if not self.cats:
+            self.pick_cats()
+            if not self.cats:
+                return
         self.g = TriviadorGame(self.cats, self.diff, name=settings.player_name())
         g = self.g
         bases = ". ".join(f"Baza {gen(g.players[i].name)} este {g.terr[i].name}" for i in range(3))
