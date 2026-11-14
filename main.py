@@ -84,10 +84,10 @@ class App:
     def check_update(self, manual):
         try:
             info = updater.check_latest() if updater.is_frozen() else None
-        except Exception:
+        except Exception as e:
             info = None
             if manual:
-                wx.CallAfter(self.f.message, "Nu am putut verifica actualizările. Verifică internetul.")
+                wx.CallAfter(self.f.message, f"Nu am putut verifica actualizările. Motiv: {e}")
                 return
         if not info:
             if manual:
