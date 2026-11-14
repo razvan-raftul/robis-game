@@ -1,6 +1,8 @@
 """Fereastra principală și ecranele accesibile (liste native, citite de NVDA)."""
 import wx
 
+import sounds
+
 
 class MainFrame(wx.Frame):
     def __init__(self, title):
@@ -26,6 +28,7 @@ class MainFrame(wx.Frame):
         if items:
             lb.SetSelection(max(0, min(selected, len(items) - 1)))
         lb.Bind(wx.EVT_LISTBOX_DCLICK, lambda e: self._activate())
+        lb.Bind(wx.EVT_LISTBOX, lambda e: sounds.play("move"))
         s.Add(lbl, 0, wx.ALL, 6)
         s.Add(lb, 1, wx.EXPAND | wx.ALL, 6)
         p.SetSizer(s)
@@ -52,6 +55,7 @@ class MainFrame(wx.Frame):
         if 0 <= i < len(self.items):
             cb = self.items[i][1]
             if cb:
+                sounds.play("select")
                 wx.CallAfter(cb)
 
     def _on_key(self, e):
@@ -61,8 +65,13 @@ class MainFrame(wx.Frame):
             self._activate()
             return
         if k == wx.WXK_ESCAPE and self.on_escape and focus is self.list:
+            sounds.play("back")
             wx.CallAfter(self.on_escape)
             return
+        if focus is self.list and self.list and k in (wx.WXK_UP, wx.WXK_DOWN, wx.WXK_HOME, wx.WXK_END):
+            i, n = self.list.GetSelection(), self.list.GetCount()
+            if (k in (wx.WXK_UP, wx.WXK_HOME) and i <= 0) or (k in (wx.WXK_DOWN, wx.WXK_END) and i >= n - 1):
+                sounds.play("edge")
         e.Skip()
 
     # ---- dialoguri (NVDA citește automat textul dialogului) ----
