@@ -33,11 +33,12 @@ jobs:
         run: |
           $extra = @()
           if (Test-Path nvdaControllerClient64.dll) { $extra = @("--add-binary", "nvdaControllerClient64.dll;.") }
-          pyinstaller --noconfirm --onefile --windowed --name JocuriAccesibile @extra main.py
+          pyinstaller --noconfirm --onefile --windowed --name RobisGame @extra main.py
       - name: Publicare
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $v = python -c "import version; print(version.VERSION)"
-          gh release create "v$v" dist/JocuriAccesibile.exe --title "Versiunea $v" --notes "Versiune nouă, se instalează singură."
+          Copy-Item dist/RobisGame.exe dist/JocuriAccesibile.exe
+          gh release create "v$v" dist/RobisGame.exe dist/JocuriAccesibile.exe --title "Versiunea $v" --notes "Versiune nouă, se instalează singură."
