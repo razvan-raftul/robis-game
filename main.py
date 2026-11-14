@@ -4,6 +4,7 @@ import threading
 
 import wx
 
+import sounds
 import speech
 import updater
 from remi_ui import RemiUI
@@ -18,30 +19,35 @@ class App:
         self.f.Show()
         self.f.Raise()
         updater.cleanup_old()
+        sounds.init()
         self.main_menu()
         if updater.is_frozen():
             threading.Thread(target=self.check_update, args=(False,), daemon=True).start()
 
-    def main_menu(self):
+    def main_menu(self, selected=0):
+        stare = "pornite" if sounds.enabled else "oprite"
         self.f.show_menu("Meniu principal", [
             ("Jocuri", self.games_menu),
+            (f"Sunete în meniu: {stare}", self.toggle_sounds),
             ("Verifică actualizările", lambda: threading.Thread(
                 target=self.check_update, args=(True,), daemon=True).start()),
             ("Despre", self.about),
-            ("Ieșire", self.f.Close),
-        ], on_escape=None)
+        ], on_escape=self.f.Close, selected=selected)
+
+    def toggle_sounds(self):
+        sounds.set_enabled(not sounds.enabled)
+        self.main_menu(selected=1)
 
     def games_menu(self):
         self.f.show_menu("Jocuri", [
             ("Triviador", lambda: TriviadorUI(self.f, self.games_menu)),
             ("Remi pe tablă", lambda: RemiUI(self.f, "tabla", self.games_menu)),
             ("Remi etalat", lambda: RemiUI(self.f, "etalat", self.games_menu)),
-            ("Înapoi", self.main_menu),
         ], on_escape=self.main_menu)
 
     def about(self):
         self.f.message(f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
-                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi.", "Despre")
+                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi. Din meniul principal ieși cu Escape sau Alt F4.", "Despre")
 
     # ----- actualizare -----
     def check_update(self, manual):
