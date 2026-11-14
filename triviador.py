@@ -1,14 +1,16 @@
 """Triviador: cucerește teritorii răspunzând la întrebări."""
 import random
 
+import settings
 import sounds
+from settings import gen
 
 from trivia_data import CATEGORII, GRILA, NUMERICE
 
 TERITORII = ["Alaska", "Canada", "Groenlanda", "Mexic", "Brazilia", "Argentina", "Islanda",
              "Marea Britanie", "Scandinavia", "Egipt", "Africa de Sud", "Siberia", "India",
              "China", "Japonia", "Indonezia", "Australia", "Noua Zeelandă"]
-NUME_AI = ["Ana", "Bogdan"]
+NUME_AI = ["Miruna", "Sara"]
 DIFICULTATI = {"Ușor": (0.45, 0.35), "Mediu": (0.6, 0.2), "Greu": (0.75, 0.1)}
 RUNDE_LUPTA = 5
 LITERE = "ABCD"
@@ -41,10 +43,10 @@ def parse_num(text):
 
 
 class TriviadorGame:
-    def __init__(self, cats, difficulty, rng=None):
+    def __init__(self, cats, difficulty, rng=None, name="Jucător"):
         self.rng = rng or random.Random()
         self.p_ok, self.sd = DIFICULTATI[difficulty]
-        self.players = [Player("Tu", True)] + [Player(n) for n in NUME_AI]
+        self.players = [Player(name, True)] + [Player(n) for n in NUME_AI]
         mc = [q for q in GRILA if q[0] in cats] or list(GRILA)
         num = [q for q in NUMERICE if q[0] in cats] or list(NUMERICE)
         if len(num) < 6:
@@ -132,7 +134,7 @@ class TriviadorGame:
         if t.base:
             t.towers -= 1
             if t.towers > 0:
-                return f"{A} a dărâmat un turn al bazei lui {D}. Mai are {t.towers}."
+                return f"{A} a dărâmat un turn al bazei {gen(D)}. Mai are {t.towers}."
             # baza cucerită: atacatorul ia tot
             for x in self.terr:
                 if x.owner == d:
@@ -140,7 +142,7 @@ class TriviadorGame:
                     if x.base:
                         x.base, x.value, x.towers = False, 1000, 0
             self.players[d].alive = False
-            return f"{A} a cucerit baza lui {D} și i-a luat toate teritoriile. {D} iese din joc."
+            return f"{A} a cucerit baza {gen(D)} și i-a luat toate teritoriile. {D} iese din joc."
         t.owner, t.value = att, 400
         return f"{A} a cucerit {t.name}, care acum valorează 400 de puncte."
 
@@ -148,10 +150,10 @@ class TriviadorGame:
         t = self.terr[ti]
         who = "nimeni" if t.owner is None else self.players[t.owner].name
         if t.base:
-            return f"Baza lui {who} ({t.name}), {t.towers} turnuri, 1000 de puncte"
+            return f"Baza {gen(who)} ({t.name}), {t.towers} turnuri, 1000 de puncte"
         if t.owner is None:
             return f"{t.name}, liber"
-        return f"{t.name}, al lui {who}, {t.value} de puncte"
+        return f"{t.name}, al {gen(who)}, {t.value} de puncte"
 
     def scores_text(self):
         parts = []
@@ -202,8 +204,9 @@ class TriviadorUI:
         self.setup()
 
     def help(self):
-        self.f.message(
-            "Joci cu Ana și Bogdan. Fiecare are o bază cu 3 turnuri, care valorează 1000 de puncte. "
+        self.f.show_lines(
+            "Cum se joacă Triviador",
+            "Joci cu Miruna și Sara. Fiecare are o bază cu 3 turnuri, care valorează 1000 de puncte. "
             "Întâi urmează extinderea: la fiecare rundă primiți o întrebare cu răspuns numeric. "
             "Cel mai apropiat alege 2 teritorii libere, al doilea alege unul. Un teritoriu luat așa valorează 200. "
             f"Apoi urmează {RUNDE_LUPTA} runde de luptă. Pe rând, fiecare atacă un teritoriu al altcuiva. "
@@ -211,14 +214,13 @@ class TriviadorUI:
             "care urcă la 400 de puncte. Dacă doar apărătorul răspunde bine, primește 100 de puncte. "
             "Dacă amândoi răspund bine, decide o întrebare numerică. O bază cade după 3 atacuri câștigate, "
             "iar cel care o cucerește ia toate teritoriile proprietarului. Câștigă cine are cele mai multe puncte la final. "
-            "În liste te miști cu săgețile, alegi cu Enter, iar Escape te duce înapoi sau te scoate din joc.", "Cum se joacă Triviador")
-        self.setup()
+            "În liste te miști cu săgețile, alegi cu Enter, F1 îți citește din nou întrebarea, iar Escape te duce înapoi sau te scoate din joc.", self.setup)
 
     # ---------- joc ----------
     def start(self):
-        self.g = TriviadorGame(self.cats, self.diff)
+        self.g = TriviadorGame(self.cats, self.diff, name=settings.player_name())
         g = self.g
-        bases = ". ".join(f"Baza lui {g.players[i].name} este {g.terr[i].name}" for i in range(3))
+        bases = ". ".join(f"Baza {gen(g.players[i].name)} este {g.terr[i].name}" for i in range(3))
         self.status(f"Jocul începe. {bases}. Urmează extinderea.", self.expansion_round)
 
     def status(self, msg, cont):
@@ -288,7 +290,7 @@ class TriviadorUI:
 
     def _human_pick(self, ti):
         self.g.take(0, ti)
-        self.pick_log.append(f"Tu ai luat {self.g.terr[ti].name}")
+        self.pick_log.append(f"Ai luat {self.g.terr[ti].name}")
         self.picks.pop(0)
         self.process_picks()
 
