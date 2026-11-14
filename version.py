@@ -5,8 +5,9 @@ except ImportError:
     BUILD = 0
 
 VERSION = f"1.0.{BUILD}"
-REPO = "OWNER/jocuri-accesibile"
-ASSET_NAME = "JocuriAccesibile.exe"
+APP_NAME = "Robi's game"
+REPO = "razvan-raftul/robis-game"
+ASSET_NAME = "RobisGame.exe"
 
 
 def as_tuple(v):
