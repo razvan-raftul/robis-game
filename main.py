@@ -16,7 +16,7 @@ from version import APP_NAME, VERSION
 
 class App:
     def __init__(self):
-        self.f = MainFrame(f"{APP_NAME} {VERSION}")
+        self.f = MainFrame(APP_NAME)
         self.f.Show()
         self.f.Raise()
         updater.cleanup_old()
@@ -41,8 +41,8 @@ class App:
             ("Setări", self.settings_menu),
             ("Verifică actualizările", lambda: threading.Thread(
                 target=self.check_update, args=(True,), daemon=True).start()),
-            ("Despre", self.about),
-        ], on_escape=self.f.Close, selected=selected)
+        ], on_escape=self.f.Close, selected=selected,
+            repeat="Meniul principal. Escape sau Alt F4 închide aplicația.")
 
     # ----- setări -----
     def first_name(self):
@@ -67,7 +67,20 @@ class App:
         self.f.show_menu("Setări", [
             (f"Numele tău: {settings.player_name()}", self.change_name),
             (f"Sunete: {stare}", self.toggle_sounds),
+            (f"Schema de sunete: {sounds.scheme}", self.scheme_menu),
         ], on_escape=lambda: self.main_menu(selected=1), selected=selected)
+
+    def scheme_menu(self):
+        names = list(sounds.SCHEMES)
+        self.f.show_menu("Schema de sunete", [(n, lambda n=n: self.set_scheme(n)) for n in names],
+                         on_escape=lambda: self.settings_menu(selected=2),
+                         selected=names.index(sounds.scheme) if sounds.scheme in names else 0,
+                         repeat=f"Alege schema de sunete. Acum este {sounds.scheme}. Enter o alege și o ascultă.")
+
+    def set_scheme(self, name):
+        sounds.set_scheme(name)
+        sounds.play("start")
+        self.settings_menu(selected=2)
 
     def change_name(self):
         self.ask_name(f"Numele tău acum este {settings.player_name()}. Scrie numele nou și apasă Enter.")
@@ -84,10 +97,6 @@ class App:
             ("Remi", lambda: RemiUI(self.f, self.games_menu)),
         ], on_escape=self.main_menu)
 
-    def about(self):
-        self.f.show_lines("Despre", f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
-                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi, iar F1 citește din nou mesajul sau întrebarea. În joc, F2 îți spune scorul, iar F3 îți arată harta sau masa. Din meniul principal ieși cu Escape sau Alt F4.", lambda: self.main_menu(selected=3))
-
     # ----- actualizare -----
     def check_update(self, manual):
         try:
@@ -99,7 +108,7 @@ class App:
                 return
         if not info:
             if manual:
-                txt = ("Ai ultima versiune." if updater.is_frozen()
+                txt = (f"Ai ultima versiune, {VERSION}." if updater.is_frozen()
                        else "Actualizarea funcționează doar în versiunea .exe.")
                 wx.CallAfter(self.f.message, txt)
             return

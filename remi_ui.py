@@ -1,4 +1,6 @@
 """Ecranele accesibile pentru Remi pe tablă și Remi etalat."""
+import wx
+
 import settings
 from remi import RemiGame
 from remi_core import best_partition, closing_plan, sort_tiles, used_ids
@@ -29,37 +31,76 @@ REGULI = {
 
 
 class RemiUI:
-    def __init__(self, frame, variant, back):
-        self.f, self.variant, self.back = frame, variant, back
-        self.title = TITLURI[variant]
-        self.n_ai = 2
+    def __init__(self, frame, back):
+        self.f, self.back = frame, back
+        self.variant = settings.get("remi_varianta", "etalat")
+        if self.variant not in TITLURI:
+            self.variant = "etalat"
+        self.title = TITLURI[self.variant]
+        self.n_ai = settings.get("remi_adversari", 2)
         self.g = None
         self.setup()
 
     def setup(self):
-        self.f.show_menu(self.title, [
-            (f"{self.title}. Joci cu {self.n_ai} {'adversar' if self.n_ai == 1 else 'adversari'} pe calculator.", None),
+        self.f.hotkeys = {}
+        self.f.show_menu("Remi", [
             ("Începe jocul", self.start),
+            ("Alege varianta: etalat sau pe tablă", self.pick_variant),
             ("Alege numărul de adversari", self.pick_n),
-            ("Reguli", self.rules),
-        ], on_escape=self.back, selected=1)
+            ("Ajutor", self.help_menu),
+        ], on_escape=self.back, selected=0,
+            repeat=f"Remi. Varianta aleasă: {self.title}. Joci cu {self.n_ai} "
+                   f"{'adversar' if self.n_ai == 1 else 'adversari'} pe calculator.")
+
+    def pick_variant(self):
+        self.f.show_menu("Varianta", [
+            ("Remi etalat", lambda: self._set_variant("etalat")),
+            ("Remi pe tablă", lambda: self._set_variant("tabla")),
+        ], on_escape=self.setup, selected=0 if self.variant == "etalat" else 1,
+            repeat=f"Alege varianta de remi. Acum este {self.title}.")
+
+    def _set_variant(self, v):
+        self.variant, self.title = v, TITLURI[v]
+        settings.put("remi_varianta", v)
+        self.setup()
 
     def pick_n(self):
-        items = [("Câți adversari vrei?", None)]
-        for n in (1, 2, 3):
-            items.append((f"{n} {'adversar' if n == 1 else 'adversari'}", lambda n=n: self._set_n(n)))
-        self.f.show_menu("Adversari", items, on_escape=self.setup, selected=self.n_ai)
+        items = [(f"{n} {'adversar' if n == 1 else 'adversari'}", lambda n=n: self._set_n(n)) for n in (1, 2, 3)]
+        self.f.show_menu("Adversari", items, on_escape=self.setup, selected=self.n_ai - 1,
+                         repeat="Câți adversari vrei?")
 
     def _set_n(self, n):
         self.n_ai = n
+        settings.put("remi_adversari", n)
         self.setup()
 
-    def rules(self):
-        self.f.show_lines("Reguli " + self.title, REGULI[self.variant], self.setup)
+    def help_menu(self, selected=0):
+        self.f.show_menu("Ajutor", [
+            ("Cum se joacă Remi etalat", lambda: self.rules("etalat")),
+            ("Cum se joacă Remi pe tablă", lambda: self.rules("tabla")),
+            ("Comenzi de tastatură", self.keys_help),
+        ], on_escape=self.setup, selected=selected, repeat="Ajutor pentru Remi.")
+
+    def rules(self, variant):
+        self.f.show_lines("Cum se joacă " + TITLURI[variant], REGULI[variant],
+                          lambda: self.help_menu(0 if variant == "etalat" else 1))
+
+    def keys_help(self):
+        self.f.show_lines(
+            "Comenzi de tastatură",
+            "Săgețile sus și jos te mută prin liste. Enter alege opțiunea. "
+            "Escape te duce înapoi, iar în timpul jocului te întreabă dacă vrei să ieși. "
+            "F1 îți citește din nou ce s-a întâmplat și ce ai de făcut. "
+            "F2 îți arată scorul. La Remi etalat, F3 îți arată masa cu formațiile tuturor. "
+            "În lista Aruncă o piesă, Enter aruncă piesa pe care stai. Alt F4 închide aplicația.",
+            lambda: self.help_menu(2))
 
     # ---------- desfășurare ----------
     def start(self):
         self.g = RemiGame(self.variant, self.n_ai, name=settings.player_name())
+        self.f.hotkeys = {wx.WXK_F2: self.show_scores}
+        if self.g.etalat_mode:
+            self.f.hotkeys[wx.WXK_F3] = self.show_table
         self.new_round()
 
     def new_round(self):
@@ -86,9 +127,6 @@ class RemiUI:
     def common_items(self, back):
         items = [("Piesele mele", lambda: self.show_hand(back)),
                  ("Formații posibile", lambda: self.show_possible(back))]
-        if self.g.etalat_mode:
-            items.append(("Masa", lambda: self.show_table(back)))
-        items += [("Scorul", lambda: back(self.scores()))]
         return items
 
     def turn_menu(self, msg):
@@ -199,15 +237,18 @@ class RemiUI:
         items.append(("Piese rămase în afara formațiilor: " + (", ".join(t.name() for t in left) or "niciuna"), None))
         self.f.show_menu("Formații posibile", items, on_escape=lambda: back("Te-ai întors."))
 
-    def show_table(self, back):
+    def show_table(self):
         g = self.g
-        items = [(f"Pe masă sunt {len(g.table)} formații. Escape pentru întoarcere.", None)]
+        lines = [f"Pe masă sunt {len(g.table)} formații."]
         for fm in g.table:
             owner = "a ta" if fm.owner == 0 else "a " + settings.gen(g.players[fm.owner].name)
-            items.append((f"{fm.name()}, {owner}", None))
+            lines.append(f"{fm.name()}, {owner}")
         for p in g.players[1:]:
-            items.append((f"{p.name} are {len(p.hand)} piese, {'etalat' if p.etalat else 'neetalat'}", None))
-        self.f.show_menu("Masa", items, on_escape=lambda: back("Te-ai întors."))
+            lines.append(f"{p.name} are {len(p.hand)} piese, {'etalat' if p.etalat else 'neetalat'}")
+        self.f.show_overlay("Masa", lines)
+
+    def show_scores(self):
+        self.f.show_overlay("Scorul", [f"{p.name}: {p.score} puncte" for p in self.g.players])
 
     def scores(self):
         return "Scor total: " + ", ".join(f"{p.name} {p.score}" for p in self.g.players) + "."

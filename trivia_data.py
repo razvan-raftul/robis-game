@@ -2,9 +2,9 @@
 Format numeric: (categorie, întrebare, răspuns)."""
 
 CATEGORII = ["Geografie", "Istorie", "Știință și natură", "Sport", "Artă și literatură",
-             "Muzică", "Film și televiziune", "Cultură generală", "Biblie"]
+             "Muzică", "Film și televiziune", "Cultură generală", "Biblie", "Copii"]
 
-G, I, S, SP, A, M, F, C, B = CATEGORII
+G, I, S, SP, A, M, F, C, B, K = CATEGORII
 
 GRILA = [
     # Geografie
@@ -196,6 +196,27 @@ GRILA = [
     (B, "Care a fost prima minune a lui Iisus, după Evanghelia lui Ioan?", "Prefacerea apei în vin la Cana", ["Umblarea pe apă", "Învierea lui Lazăr", "Înmulțirea pâinilor"]),
     (B, "Cine l-a ucis pe Abel?", "Cain", ["Set", "Esau", "Iacob"]),
     (B, "Pe cine l-au vândut frații săi în Egipt?", "Iosif", ["Beniamin", "Iuda", "Ruben"]),
+    # Copii
+    (K, "Câte picioare are un păianjen?", "8", ["6", "4", "10"]),
+    (K, "Ce animal face mu?", "Vaca", ["Oaia", "Porcul", "Calul"]),
+    (K, "Ce culoare are cerul senin ziua?", "Albastru", ["Verde", "Roșu", "Galben"]),
+    (K, "Câte zile are o săptămână?", "7", ["5", "6", "10"]),
+    (K, "Ce fruct este galben și curbat?", "Banana", ["Mărul", "Cireașa", "Strugurele"]),
+    (K, "Unde trăiesc peștii?", "În apă", ["Pe copaci", "În deșert", "Sub pământ"]),
+    (K, "Ce anotimp vine după iarnă?", "Primăvara", ["Vara", "Toamna", "Tot iarna"]),
+    (K, "Câte litere are cuvântul casă?", "4", ["3", "5", "6"]),
+    (K, "Ce animal este numit regele animalelor în povești?", "Leul", ["Tigrul", "Elefantul", "Ursul"]),
+    (K, "Pe ce planetă trăim?", "Pământ", ["Marte", "Venus", "Jupiter"]),
+    (K, "Câte degete are o mână?", "5", ["4", "6", "10"]),
+    (K, "Ce instrument are clape albe și negre?", "Pianul", ["Chitara", "Toba", "Trompeta"]),
+    (K, "Ce culoare se obține din roșu și galben?", "Portocaliu", ["Verde", "Mov", "Albastru"]),
+    (K, "Ce pasăre nu poate zbura și trăiește în zonele înghețate din sud?", "Pinguinul", ["Vulturul", "Papagalul", "Rândunica"]),
+    (K, "Care este cel mai mare animal de pe uscat?", "Elefantul", ["Girafa", "Rinocerul", "Ursul"]),
+    (K, "Ce formă are o minge?", "Rotundă", ["Pătrată", "Triunghiulară", "Dreptunghiulară"]),
+    (K, "Câte roți are o bicicletă?", "2", ["3", "4", "1"]),
+    (K, "Ce folosim ca să vedem pe întuneric?", "Lanterna", ["Umbrela", "Pieptenele", "Lingura"]),
+    (K, "Câte ore are o zi?", "24", ["12", "20", "30"]),
+    (K, "În ce anotimp ninge de obicei?", "Iarna", ["Vara", "Primăvara", "Toamna"]),
 ]
 
 NUMERICE = [
@@ -242,4 +263,10 @@ NUMERICE = [
     (B, "Câte pâini a înmulțit Iisus ca să sature cinci mii de oameni?", 5),
     (B, "Câți fii a avut Iacob?", 12),
     (B, "Câte zile a stat Iona în pântecele peștelui?", 3),
+    (K, "Câte picioare are o pisică?", 4),
+    (K, "Câți ani are un deceniu?", 10),
+    (K, "Câte luni are un an?", 12),
+    (K, "Câte minute are o oră?", 60),
+    (K, "Câte zile are luna ianuarie?", 31),
+    (K, "Câte culori are curcubeul?", 7),
 ]

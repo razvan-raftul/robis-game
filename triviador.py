@@ -1,5 +1,10 @@
 """Triviador: cucerește teritorii răspunzând la întrebări."""
+import difflib
 import random
+import re
+import unicodedata
+
+import wx
 
 import settings
 import sounds
@@ -30,6 +35,27 @@ def fmt_num(x):
     if abs(x - round(x)) < 1e-9:
         return f"{int(round(x)):,}".replace(",", ".")
     return f"{x:.2f}".replace(".", ",")
+
+
+def norm(s):
+    s = unicodedata.normalize("NFKD", str(s).lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", s).split())
+
+
+def text_matches(given, correct):
+    """Verifică un răspuns scris, iertând diacriticele, literele mari și micile greșeli."""
+    a, c = norm(given), norm(correct)
+    if not a:
+        return False
+    if a == c:
+        return True
+    na, nc = parse_num(given), parse_num(correct)
+    if na is not None and nc is not None:
+        return na == nc
+    if len(a) >= 3 and set(a.split()) <= set(c.split()):
+        return True
+    return difflib.SequenceMatcher(None, a, c).ratio() >= 0.8
 
 
 def parse_num(text):
@@ -173,6 +199,14 @@ class TriviadorGame:
             return f"{t.name}, liber"
         return f"{t.name}, al {gen(who)}, {t.value} de puncte"
 
+    def scores_lines(self):
+        out = []
+        for i in sorted(range(len(self.players)), key=lambda i: -self.score(i)):
+            p = self.players[i]
+            extra = "" if p.alive else ", eliminat"
+            out.append(f"{p.name}: {self.score(i)} puncte, {len(self.owned(i))} teritorii{extra}")
+        return out
+
     def scores_text(self):
         parts = []
         for i in sorted(range(len(self.players)), key=lambda i: -self.score(i)):
@@ -187,6 +221,7 @@ class TriviadorUI:
         self.f, self.back = frame, back
         self.cats, self.diff = [], "Mediu"
         self.num_mode = settings.get("mod_numeric", "variante")
+        self.f.hotkeys = {}
         self.setup()
 
     # ---------- pregătire ----------
@@ -197,17 +232,16 @@ class TriviadorUI:
             alese = "toate"
         else:
             alese = ", ".join(self.cats)
-        txt = (f"Triviador. Categorii alese: {alese}. "
-               f"Dificultate adversari: {self.diff}.")
+        mod = "grilă" if self.num_mode == "variante" else "scris"
+        txt = (f"Triviador. Categorii alese: {alese}. Dificultate adversari: {self.diff}. "
+               f"Modalitatea jocului: {mod}.")
         self.f.show_menu("Triviador", [
-            (txt, None),
             ("Începe jocul", self.start),
             ("Alege categoriile de întrebări", self.pick_cats),
             ("Alege dificultatea adversarilor", self.pick_diff),
-            (f"Întrebările cu număr: {'cu variante' if self.num_mode == 'variante' else 'scrii tu numărul'}",
-             self.toggle_num_mode),
-            ("Cum se joacă", self.help),
-        ], on_escape=self.back, selected=1)
+            ("Alege modalitatea jocului", self.pick_mode),
+            ("Ajutor", self.help_menu),
+        ], on_escape=self.back, selected=0, repeat=txt)
 
     def pick_cats(self):
         choices = ["Toate"] + CATEGORII
@@ -221,23 +255,31 @@ class TriviadorUI:
                 self.cats = [CATEGORII[i - 1] for i in r]
         self.setup()
 
-    def toggle_num_mode(self):
-        self.num_mode = "scriu" if self.num_mode == "variante" else "variante"
-        settings.put("mod_numeric", self.num_mode)
+    def pick_mode(self):
+        cur = "grilă" if self.num_mode == "variante" else "scris"
+        self.f.show_menu("Modalitatea jocului", [
+            ("Grilă, alegi răspunsul din variante", lambda: self._set_mode("variante")),
+            ("Scris, scrii tu fiecare răspuns", lambda: self._set_mode("scriu")),
+        ], on_escape=self.setup, selected=0 if self.num_mode == "variante" else 1,
+            repeat=f"Alege modalitatea jocului. Acum este {cur}.")
+
+    def _set_mode(self, mode):
+        self.num_mode = mode
+        settings.put("mod_numeric", mode)
         self.setup()
 
     def ask_number(self, msg, q, on_value):
         """Cere răspunsul la o întrebare cu număr, cu variante sau scris, după setare."""
         if self.num_mode == "variante":
-            items = [(msg + " Alege varianta cea mai apropiată.", None)]
+            items = [(msg, None)]
             for k, v in enumerate(self.g.num_options(q["ans"])):
                 items.append((f"{LITERE[k]}: {fmt_num(v)}", lambda v=v: on_value(v)))
-            self.f.show_menu("Întrebare cu număr", items, on_escape=self.quit, selected=0)
+            self.f.show_menu("Întrebare", items, on_escape=self.quit, selected=0)
             return
-        text_msg = msg + " Scrie un număr."
+        text_msg = msg + " Scrie răspunsul."
         val = None
         while True:
-            text = self.f.ask_text(text_msg, "Întrebare cu număr")
+            text = self.f.ask_text(text_msg, "Întrebare")
             if text is None:
                 break
             val = parse_num(text)
@@ -247,14 +289,29 @@ class TriviadorUI:
         on_value(val)
 
     def pick_diff(self):
-        items = [("Alege cât de buni sunt adversarii.", None)]
-        for d in DIFICULTATI:
-            items.append((d, lambda d=d: self._set_diff(d)))
-        self.f.show_menu("Dificultate", items, on_escape=self.setup, selected=2)
+        items = [(d, lambda d=d: self._set_diff(d)) for d in DIFICULTATI]
+        self.f.show_menu("Dificultate", items, on_escape=self.setup, selected=list(DIFICULTATI).index(self.diff),
+                         repeat=f"Alege cât de buni sunt adversarii. Acum: {self.diff}.")
 
     def _set_diff(self, d):
         self.diff = d
         self.setup()
+
+    def help_menu(self, selected=0):
+        self.f.show_menu("Ajutor", [
+            ("Cum se joacă", self.help),
+            ("Comenzi de tastatură", self.keys_help),
+        ], on_escape=self.setup, selected=selected, repeat="Ajutor pentru Triviador.")
+
+    def keys_help(self):
+        self.f.show_lines(
+            "Comenzi de tastatură",
+            "Săgețile sus și jos te mută prin liste. Enter alege opțiunea. "
+            "Escape te duce înapoi, iar în timpul jocului te întreabă dacă vrei să ieși. "
+            "F1 îți citește din nou întrebarea sau ce ai de făcut pe ecranul curent. "
+            "F2 îți arată scorul. F3 îți arată harta cu teritoriile. "
+            "Când scrii un răspuns, apeși Enter ca să-l trimiți. Alt F4 închide aplicația.",
+            lambda: self.help_menu(1))
 
     def help(self):
         self.f.show_lines(
@@ -262,12 +319,13 @@ class TriviadorUI:
             "Joci cu Miruna și Sara. Fiecare are o bază cu 3 turnuri, care valorează 1000 de puncte. "
             "Întâi urmează extinderea: la fiecare rundă primiți o întrebare cu răspuns numeric. "
             "Cel mai apropiat alege 2 teritorii libere, al doilea alege unul. Un teritoriu luat așa valorează 200. "
+            "În meniul jocului poți alege modul de răspuns: grilă, cu variante, sau scris, când scrii tu fiecare răspuns. "
             f"Apoi urmează {RUNDE_LUPTA} runde de luptă. Pe rând, fiecare atacă un teritoriu al altcuiva. "
-            "Atacatorul și apărătorul răspund la o întrebare cu 4 variante. Dacă doar atacatorul răspunde bine, cucerește teritoriul, "
+            "Atacatorul și apărătorul răspund la aceeași întrebare. Dacă doar atacatorul răspunde bine, cucerește teritoriul, "
             "care urcă la 400 de puncte. Dacă doar apărătorul răspunde bine, primește 100 de puncte. "
-            "Dacă amândoi răspund bine, decide o întrebare numerică. O bază cade după 3 atacuri câștigate, "
-            "iar cel care o cucerește ia toate teritoriile proprietarului. Câștigă cine are cele mai multe puncte la final. "
-            "În liste te miști cu săgețile, alegi cu Enter, F1 îți citește din nou întrebarea, iar Escape te duce înapoi sau te scoate din joc.", self.setup)
+            "Dacă amândoi răspund bine, decide o întrebare cu răspuns numeric, cel mai apropiat câștigă. O bază cade după 3 atacuri câștigate, "
+            "iar cel care o cucerește ia toate teritoriile proprietarului. Câștigă cine are cele mai multe puncte la final.",
+            lambda: self.help_menu(0))
 
     # ---------- joc ----------
     def start(self):
@@ -276,6 +334,7 @@ class TriviadorUI:
             if not self.cats:
                 return
         self.g = TriviadorGame(self.cats, self.diff, name=settings.player_name())
+        self.f.hotkeys = {wx.WXK_F2: self.show_scores, wx.WXK_F3: self.show_map}
         g = self.g
         bases = ". ".join(f"Baza {gen(g.players[i].name)} este {g.terr[i].name}" for i in range(3))
         self.status(f"Jocul începe. {bases}. Urmează extinderea.", self.expansion_round)
@@ -285,15 +344,13 @@ class TriviadorUI:
         self.f.show_menu("Triviador", [
             (msg, None),
             ("Continuă", cont),
-            ("Harta", self.show_map),
-            ("Scorul", lambda: self.status(self.g.scores_text(), cont)),
         ], on_escape=self.quit, selected=0)
 
     def show_map(self):
-        items = [("Harta. Escape pentru întoarcere.", None)]
-        items += [(self.g.describe(i), None) for i in range(len(self.g.terr))]
-        back = lambda: self.status("Te-ai întors din hartă.", self.cont)
-        self.f.show_menu("Harta", items, on_escape=back)
+        self.f.show_overlay("Harta", [self.g.describe(i) for i in range(len(self.g.terr))])
+
+    def show_scores(self):
+        self.f.show_overlay("Scorul", self.g.scores_lines())
 
     def quit(self):
         if self.f.confirm("Sigur ieși din jocul de Triviador?"):
@@ -391,15 +448,21 @@ class TriviadorUI:
             # oamenii nu sunt implicați: simulăm
             a_ok, d_ok = g.ai_mc(), g.ai_mc()
             return self.after_mc(a_ok, d_ok, f"{A} atacă {T}, de la {D}. ", None)
+        if self.num_mode == "scriu":
+            text = self.f.ask_text(f"{intro} Categoria {q['cat']}. {q['q']} Scrie răspunsul.", "Întrebare")
+            corect = q["opts"][q["ok"]]
+            return self._answer_result(text is not None and text_matches(text, corect))
         items = [(f"{intro} Categoria {q['cat']}. {q['q']}", None)]
         for k, o in enumerate(q["opts"]):
             items.append((f"{LITERE[k]}: {o}", lambda k=k: self._answer(k)))
         self.f.show_menu("Întrebare", items, on_escape=self.quit, selected=0)
 
     def _answer(self, k):
+        self._answer_result(k == self.cur_q["ok"])
+
+    def _answer_result(self, me_ok):
         g, q = self.g, self.cur_q
         att, ti, d = self.cur
-        me_ok = k == q["ok"]
         sounds.play("correct" if me_ok else "wrong")
         other_ok = g.ai_mc()
         a_ok, d_ok = (me_ok, other_ok) if att == 0 else (other_ok, me_ok)
