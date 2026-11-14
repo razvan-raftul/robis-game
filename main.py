@@ -21,13 +21,21 @@ class App:
         self.f.Raise()
         updater.cleanup_old()
         sounds.init()
+        sounds.play("start")
+        self.f.Bind(wx.EVT_CLOSE, self.on_close)
         self.main_menu()
         if not settings.get("nume"):
             wx.CallAfter(self.first_name)
         if updater.is_frozen():
             threading.Thread(target=self.check_update, args=(False,), daemon=True).start()
 
+    def on_close(self, e):
+        self.f.Hide()
+        sounds.play_sync("exit")
+        e.Skip()
+
     def main_menu(self, selected=0):
+        self.f.hotkeys = {}
         self.f.show_menu("Meniu principal", [
             ("Jocuri", self.games_menu),
             ("Setări", self.settings_menu),
@@ -70,15 +78,15 @@ class App:
         self.settings_menu(selected=1)
 
     def games_menu(self):
+        self.f.hotkeys = {}
         self.f.show_menu("Jocuri", [
             ("Triviador", lambda: TriviadorUI(self.f, self.games_menu)),
-            ("Remi pe tablă", lambda: RemiUI(self.f, "tabla", self.games_menu)),
-            ("Remi etalat", lambda: RemiUI(self.f, "etalat", self.games_menu)),
+            ("Remi", lambda: RemiUI(self.f, self.games_menu)),
         ], on_escape=self.main_menu)
 
     def about(self):
         self.f.show_lines("Despre", f"{APP_NAME}, versiunea {VERSION}. Se actualizează singur de pe GitHub. "
-                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi, iar F1 citește din nou mesajul sau întrebarea. Din meniul principal ieși cu Escape sau Alt F4.", lambda: self.main_menu(selected=3))
+                       "În liste te miști cu săgețile, Enter alege, Escape te duce înapoi, iar F1 citește din nou mesajul sau întrebarea. În joc, F2 îți spune scorul, iar F3 îți arată harta sau masa. Din meniul principal ieși cu Escape sau Alt F4.", lambda: self.main_menu(selected=3))
 
     # ----- actualizare -----
     def check_update(self, manual):
