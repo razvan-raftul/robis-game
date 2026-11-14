@@ -17,10 +17,13 @@ class MainFrame(wx.Frame):
         self.list = None
         self.items = []
         self.on_escape = None
+        self.hotkeys = {}
+        self._last = None
+        self._repeat_is_item = True
         self.Bind(wx.EVT_CHAR_HOOK, self._on_key)
 
     # ---- ecran listă ----
-    def show_menu(self, title, items, on_escape=None, selected=0):
+    def show_menu(self, title, items, on_escape=None, selected=0, repeat=None):
         """items: listă de (text, funcție sau None). Primul element poate fi un mesaj."""
         old = self.panel
         p = wx.Panel(self)
@@ -40,7 +43,9 @@ class MainFrame(wx.Frame):
             self.sizer.Detach(old)
             old.Destroy()
         self.panel, self.list, self.items, self.on_escape = p, lb, items, on_escape
-        self.repeat = str(items[0][0]) if items else title
+        self.repeat = repeat if repeat is not None else (str(items[0][0]) if items else title)
+        self._repeat_is_item = repeat is None
+        self._last = (title, items, on_escape)
         self.SetTitle(f"{title} - {self.base_title}")
         self.Layout()
         wx.CallAfter(self._focus)
@@ -68,6 +73,10 @@ class MainFrame(wx.Frame):
         if k == wx.WXK_F1 and self.list:
             self.repeat_message()
             return
+        if k in self.hotkeys and self.list and focus is self.list:
+            sounds.play("select")
+            wx.CallAfter(self.hotkeys[k])
+            return
         if k in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and focus is self.list and self.list:
             self._activate()
             return
@@ -83,12 +92,26 @@ class MainFrame(wx.Frame):
 
     def repeat_message(self):
         """F1: citește din nou mesajul sau întrebarea de pe ecran."""
-        if not speech.speak(self.repeat):
-            try:
-                self.list.SetSelection(0)
-                self.list.SetFocus()
-            except RuntimeError:
-                pass
+        if speech.speak(self.repeat):
+            return
+        if not self._repeat_is_item:
+            self.message(self.repeat)
+            return
+        try:
+            self.list.SetSelection(0)
+            self.list.SetFocus()
+        except RuntimeError:
+            pass
+
+    def show_overlay(self, title, lines):
+        """Arată o listă (scor, hartă) peste ecranul curent; Escape revine exact unde erai."""
+        if not self._last:
+            return
+        t, items, esc = self._last
+        sel = self.list.GetSelection() if self.list else 0
+        back = lambda: self.show_menu(t, items, on_escape=esc, selected=max(sel, 0))
+        self.show_menu(title, [(f"{title}. Escape te întoarce.", None)] + [(l, None) for l in lines],
+                       on_escape=back)
 
     def show_lines(self, title, text, on_escape):
         """Text lung afișat ca listă, câte o propoziție pe rând. Escape te întoarce."""
