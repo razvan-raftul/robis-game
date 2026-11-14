@@ -17,8 +17,10 @@ SOUNDS = {
     "select": ([(660, 45), (990, 70)], 0.3),
     "back": ([(990, 45), (660, 70)], 0.3),
     "edge": ([(200, 70)], 0.35),
+    "correct": ([(523, 80), (659, 80), (784, 80), (1047, 160)], 0.32),
+    "wrong": ([(311, 140), (233, 260)], 0.35),
 }
-_dir = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v1")
+_dir = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v2")
 _cfg = os.path.join(os.environ.get("APPDATA", tempfile.gettempdir()), "RobisGame", "setari.json")
 enabled = True
 
