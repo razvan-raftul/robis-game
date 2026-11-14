@@ -4,7 +4,7 @@ import random
 from remi_core import (Formation, best_partition, candidates, choose_discard, closing_plan,
                        make_deck, sort_tiles, used_ids)
 
-NUME_AI = ["Ana", "Bogdan", "Cristi"]
+NUME_AI = ["Miruna", "Sara", "Cristi"]
 
 
 class RPlayer:
@@ -94,10 +94,10 @@ def etalare_plan(hand, first, must=None):
 
 
 class RemiGame:
-    def __init__(self, variant, n_ai, rng=None):
+    def __init__(self, variant, n_ai, rng=None, name="Jucător"):
         self.variant = variant          # "tabla" sau "etalat"
         self.rng = rng or random.Random()
-        self.players = [RPlayer("Tu", True)] + [RPlayer(n) for n in NUME_AI[:n_ai]]
+        self.players = [RPlayer(name, True)] + [RPlayer(n) for n in NUME_AI[:n_ai]]
         self.starter = self.rng.randrange(len(self.players))
         self.round_no = 0
 
