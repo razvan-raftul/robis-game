@@ -20,8 +20,10 @@ SOUNDS = {
     "edge": ([(200, 70)], 0.35),
     "correct": ([(523, 80), (659, 80), (784, 80), (1047, 160)], 0.32),
     "wrong": ([(311, 140), (233, 260)], 0.35),
+    "start": ([(392, 80), (523, 80), (659, 80), (784, 80), (1047, 280)], 0.3),
+    "exit": ([(784, 90), (659, 90), (523, 90), (392, 260)], 0.3),
 }
-_dir = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v2")
+_dir = os.path.join(tempfile.gettempdir(), "RobisGame_sunete_v3")
 enabled = True
 
 
@@ -56,6 +58,16 @@ def set_enabled(value):
     global enabled
     enabled = value
     settings.put("sunete", value)
+
+
+def play_sync(name):
+    """Sunet care se aude până la capăt (la ieșirea din aplicație)."""
+    if not enabled or winsound is None:
+        return
+    try:
+        winsound.PlaySound(os.path.join(_dir, name + ".wav"), winsound.SND_FILENAME | winsound.SND_NODEFAULT)
+    except Exception:
+        pass
 
 
 def play(name):
