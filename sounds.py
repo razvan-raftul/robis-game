@@ -92,7 +92,18 @@ def _make_intro(name):
             _write(p, seg, 0.16, kind, 1.0, 1.0, decay, True)
 
 
+def _make_done():
+    d = os.path.join(_base, "extra")
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, "done.wav")
+    if not os.path.exists(p):
+        # clinchet blând: actualizare terminată
+        _write(p, [(784, 140), (1047, 140), (1319, 420)], 0.18, "bell", 1.0, 1.0, 3.0, True)
+
+
 def _path(name):
+    if name == "done":
+        return os.path.join(_base, "extra", "done.wav")
     if name in ("start", "exit"):
         if not INTROS.get(intro):
             return None
@@ -126,6 +137,7 @@ def init():
     try:
         _make(scheme)
         _make_intro(intro)
+        _make_done()
     except Exception:
         pass
 
