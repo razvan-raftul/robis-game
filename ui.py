@@ -23,8 +23,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_CHAR_HOOK, self._on_key)
 
     # ---- ecran listă ----
-    def show_menu(self, title, items, on_escape=None, selected=0, repeat=None):
-        """items: listă de (text, funcție sau None). Primul element poate fi un mesaj."""
+    def show_menu(self, title, items, on_escape=None, selected=0, repeat=None, on_move=None):
+        """items: listă de (text, funcție sau None). Primul element poate fi un mesaj.
+        on_move(index): în loc de sunetul obișnuit de mișcare (de ex. ca să asculți o schemă)."""
         old = self.panel
         p = wx.Panel(self)
         s = wx.BoxSizer(wx.VERTICAL)
@@ -34,7 +35,7 @@ class MainFrame(wx.Frame):
         if items:
             lb.SetSelection(max(0, min(selected, len(items) - 1)))
         lb.Bind(wx.EVT_LISTBOX_DCLICK, lambda e: self._activate())
-        lb.Bind(wx.EVT_LISTBOX, lambda e: sounds.play("move"))
+        lb.Bind(wx.EVT_LISTBOX, lambda e: on_move(lb.GetSelection()) if on_move else sounds.play("move"))
         s.Add(lbl, 0, wx.ALL, 6)
         s.Add(lb, 1, wx.EXPAND | wx.ALL, 6)
         p.SetSizer(s)
