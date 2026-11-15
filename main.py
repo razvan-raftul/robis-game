@@ -24,8 +24,13 @@ class App:
         sounds.play("start")
         self.f.Bind(wx.EVT_CLOSE, self.on_close)
         self.main_menu()
-        if not settings.get("nume"):
+        first_run = not settings.get("nume")
+        last = settings.get("ultima_versiune")
+        settings.put("ultima_versiune", VERSION)
+        if first_run:
             wx.CallAfter(self.first_name)
+        elif updater.is_frozen() and last != VERSION:
+            wx.CallAfter(self.after_update)
         if updater.is_frozen():
             threading.Thread(target=self.check_update, args=(False,), daemon=True).start()
 
@@ -71,30 +76,42 @@ class App:
             (f"Sunet de deschidere și închidere: {sounds.intro}", self.intro_menu),
         ], on_escape=lambda: self.main_menu(selected=1), selected=selected)
 
-    def intro_menu(self):
+    # ----- alegerea schemelor (din Setări sau după fiecare actualizare) -----
+    def after_update(self):
+        self.f.message(f"Robi's game s-a actualizat la versiunea {VERSION}. Acum alegi sunetul de deschidere "
+                       "și închidere, apoi schema de sunete pentru meniu. Te miști cu săgețile și le auzi, "
+                       "Enter alege, Escape păstrează ce aveai.", "Actualizare")
+        self.intro_menu(then=lambda: self.scheme_menu(then=self.main_menu))
+
+    def intro_menu(self, then=None):
+        then = then or (lambda: self.settings_menu(selected=3))
         names = list(sounds.INTROS)
-        self.f.show_menu("Sunet de deschidere și închidere", [(n, lambda n=n: self.set_intro(n)) for n in names],
-                         on_escape=lambda: self.settings_menu(selected=3),
+        self.f.show_menu("Sunet de deschidere și închidere", [(n, lambda n=n: self.set_intro(n, then)) for n in names],
+                         on_escape=then,
                          selected=names.index(sounds.intro) if sounds.intro in names else 0,
+                         on_move=lambda i: sounds.preview_intro(names[i]) if 0 <= i < len(names) else None,
                          repeat=f"Alege sunetul de deschidere și închidere. Acum este {sounds.intro}. "
-                                "Enter îl alege și îl ascultă.")
+                                "Săgețile îl fac să se audă, Enter îl alege, Escape păstrează ce aveai.")
 
-    def set_intro(self, name):
+    def set_intro(self, name, then):
         sounds.set_intro(name)
-        sounds.play("start")
-        self.settings_menu(selected=3)
+        sounds.preview_intro(name)
+        then()
 
-    def scheme_menu(self):
+    def scheme_menu(self, then=None):
+        then = then or (lambda: self.settings_menu(selected=2))
         names = list(sounds.SCHEMES)
-        self.f.show_menu("Schema de sunete", [(n, lambda n=n: self.set_scheme(n)) for n in names],
-                         on_escape=lambda: self.settings_menu(selected=2),
+        self.f.show_menu("Schema de sunete pentru meniu", [(n, lambda n=n: self.set_scheme(n, then)) for n in names],
+                         on_escape=then,
                          selected=names.index(sounds.scheme) if sounds.scheme in names else 0,
-                         repeat=f"Alege schema de sunete. Acum este {sounds.scheme}. Enter o alege și o ascultă.")
+                         on_move=lambda i: sounds.preview_scheme(names[i]) if 0 <= i < len(names) else None,
+                         repeat=f"Alege schema de sunete pentru meniu. Acum este {sounds.scheme}. "
+                                "Săgețile o fac să se audă, Enter o alege, Escape păstrează ce aveai.")
 
-    def set_scheme(self, name):
+    def set_scheme(self, name, then):
         sounds.set_scheme(name)
-        sounds.play("start")
-        self.settings_menu(selected=2)
+        sounds.preview_scheme(name)
+        then()
 
     def change_name(self):
         self.ask_name(f"Numele tău acum este {settings.player_name()}. Scrie numele nou și apasă Enter.")
