@@ -24,13 +24,8 @@ class App:
         sounds.play("start")
         self.f.Bind(wx.EVT_CLOSE, self.on_close)
         self.main_menu()
-        first_run = not settings.get("nume")
-        last = settings.get("ultima_versiune")
-        settings.put("ultima_versiune", VERSION)
-        if first_run:
+        if not settings.get("nume"):
             wx.CallAfter(self.first_name)
-        elif updater.is_frozen() and last != VERSION:
-            wx.CallAfter(self.after_update)
         if updater.is_frozen():
             threading.Thread(target=self.check_update, args=(False,), daemon=True).start()
 
@@ -76,13 +71,7 @@ class App:
             (f"Sunet de deschidere și închidere: {sounds.intro}", self.intro_menu),
         ], on_escape=lambda: self.main_menu(selected=1), selected=selected)
 
-    # ----- alegerea schemelor (din Setări sau după fiecare actualizare) -----
-    def after_update(self):
-        self.f.message(f"Robi's game s-a actualizat la versiunea {VERSION}. Acum alegi sunetul de deschidere "
-                       "și închidere, apoi schema de sunete pentru meniu. Te miști cu săgețile și le auzi, "
-                       "Enter alege, Escape păstrează ce aveai.", "Actualizare")
-        self.intro_menu(then=lambda: self.scheme_menu(then=self.main_menu))
-
+    # ----- alegerea schemelor (din Setări) -----
     def intro_menu(self, then=None):
         then = then or (lambda: self.settings_menu(selected=3))
         names = list(sounds.INTROS)
